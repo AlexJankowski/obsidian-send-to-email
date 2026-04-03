@@ -1,6 +1,8 @@
 import esbuild from "esbuild";
 import process from "process";
 import { builtinModules } from 'node:module';
+import fs from "fs";
+import path from "path";
 
 const banner =
 `/*
@@ -37,13 +39,31 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: "dist/main.js",
 	minify: prod,
 });
 
 if (prod) {
 	await context.rebuild();
+	copyAssets();
 	process.exit(0);
 } else {
 	await context.watch();
+	copyAssets();
+}
+
+function copyAssets() {
+	if (!fs.existsSync("dist")) {
+		fs.mkdirSync("dist");
+	}
+	// Sync manifest and styles to dist
+	fs.copyFileSync("manifest.json", path.join("dist", "manifest.json"));
+	if (fs.existsSync("styles.css")) {
+		fs.copyFileSync("styles.css", path.join("dist", "styles.css"));
+	}
+
+	// Also ensure main.js is available at the root for Obsidian's development mode
+	if (fs.existsSync("dist/main.js")) {
+		fs.copyFileSync("dist/main.js", "main.js");
+	}
 }
